@@ -164,5 +164,5 @@ def search_documents_multimodal(query: str, k: int = 5, context_chars: int = 300
 
 
 if __name__ == "__main__":
-    logger.info("starting pdf-viewer MCP server (MCP_DOCS_DIR=%s)", MCP_DOCS_DIR)
+    logger.info("starting MCP server (MCP_DOCS_DIR=%s)", MCP_DOCS_DIR)
     mcp.run()

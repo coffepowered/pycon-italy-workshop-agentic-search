@@ -1389,7 +1389,6 @@ class SlidePresentation {
         }, { passive: true });
     }
 }
-const deck = new SlidePresentation();
 
 /* ===========================================================
    INLINE EDITOR  (opt-in feature — enabled for this deck)
@@ -1493,7 +1492,13 @@ class Editor {
         URL.revokeObjectURL(a.href);
     }
 }
+
+// Order matters: the Editor's restore() rewrites deck.innerHTML when there are
+// saved edits in localStorage, replacing every slide node. Run it FIRST so the
+// presentation controller below captures the live (restored) nodes — otherwise
+// it holds stale detached nodes and arrow keys / dots / wheel silently no-op.
 new Editor();
+const deck = new SlidePresentation();
 </script>
 </body>
 </html>
