@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Search in the era of AI Agents — PyCon Italy 2026</title>
+
+<!-- ===========================================
+     FONTS  (distinctive, non-system)
+     Fraunces  -> editorial soft-serif display
+     Switzer   -> clean modern grotesk body
+     JetBrains -> code / mono
+     =========================================== -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" rel="stylesheet" />
+
+<style>
+/* ===========================================
+   THEME TOKENS — edit these to reskin the deck
+   White paper background · deep forest green · vivid orange
+   =========================================== */
+:root {
+    --bg:        #FBF8F1;   /* warm paper white */
+    --bg-alt:    #F2EDE1;   /* card / panel */
+    --bg-deep:   #EAE3D2;   /* deeper panel */
+    --green:     #143C2E;   /* deep forest green (primary) */
+    --green-mid: #2F6B53;   /* mid green */
+    --green-soft:#E2EDE5;   /* green tint surface */
+    --orange:    #DC5A18;   /* vivid orange (accent) */
+    --orange-2:  #F0913F;   /* soft orange */
+    --orange-tint:#FBE7D3;  /* orange wash */
+    --ink:       #1C261F;   /* near-black, green tinted */
+    --muted:     #6E7C72;   /* secondary text */
+    --line:      #DAD1BE;   /* hairlines */
+
+    /* Type */
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body:    "Switzer", system-ui, sans-serif;
+    --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+    /* Fluid sizes */
+    --title-size:    clamp(2rem, 5.4vw, 4.6rem);
+    --h2-size:       clamp(1.4rem, 3.4vw, 2.7rem);
+    --h3-size:       clamp(1rem, 1.9vw, 1.5rem);
+    --body-size:     clamp(0.82rem, 1.35vw, 1.12rem);
+    --small-size:    clamp(0.68rem, 1vw, 0.9rem);
+
+    /* Spacing */
+    --slide-padding: clamp(1.4rem, 4.2vw, 4.5rem);
+    --content-gap:   clamp(0.7rem, 1.8vw, 1.6rem);
+    --element-gap:   clamp(0.35rem, 1vw, 0.95rem);
+
+    /* Motion */
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   VIEWPORT FITTING (mandatory base) — see frontend-slides/viewport-base.css
+   =========================================== */
+html, body { height: 100%; overflow-x: hidden; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+.slide {
+    width: 100vw;
+    height: 100vh; height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    display: flex; flex-direction: column;
+    position: relative;
+}
+.slide-content {
+    flex: 1;
+    display: flex; flex-direction: column; justify-content: center;
+    max-height: 100%; overflow: hidden;
+    padding: var(--slide-padding);
+    max-width: min(1280px, 100%);
+    margin: 0 auto;
+    width: 100%;
+}
+img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+
+@media (max-height: 700px) {
+    :root { --slide-padding: clamp(0.9rem, 3vw, 2rem); --content-gap: clamp(0.5rem,1.4vw,1rem);
+            --title-size: clamp(1.5rem,4.6vw,2.8rem); --h2-size: clamp(1.2rem,3vw,1.9rem); }
+}
+@media (max-height: 600px) {
+    :root { --slide-padding: clamp(0.6rem,2.4vw,1.5rem); --content-gap: clamp(0.35rem,1vw,0.7rem);
+            --title-size: clamp(1.2rem,4vw,2rem); --body-size: clamp(0.72rem,1.2vw,0.92rem); }
+    .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-height: 500px) {
+    :root { --slide-padding: clamp(0.4rem,2vw,1rem); --title-size: clamp(1rem,3.5vw,1.5rem);
+            --h2-size: clamp(0.9rem,2.5vw,1.25rem); --body-size: clamp(0.66rem,1vw,0.85rem); }
+}
+@media (max-width: 600px) {
+    :root { --title-size: clamp(1.4rem, 8vw, 2.6rem); }
+    .grid, .two-col { grid-template-columns: 1fr !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .2s !important; }
+    html { scroll-behavior: auto; }
+}
+
+/* ===========================================
+   GLOBAL CANVAS
+   =========================================== */
+body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background-color: var(--bg);
+    /* subtle dotted grid + faint corner washes for depth */
+    background-image:
+        radial-gradient(circle at 1px 1px, rgba(20,60,46,0.06) 1px, transparent 0),
+        radial-gradient(ellipse 60% 50% at 100% 0%, rgba(220,90,24,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, rgba(20,60,46,0.05) 0%, transparent 60%);
+    background-size: 26px 26px, 100% 100%, 100% 100%;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+}
+
+/* ===========================================
+   TYPOGRAPHY HELPERS
+   =========================================== */
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; color: var(--green); line-height: 1.04; letter-spacing: -0.02em; }
+h2 { font-size: var(--h2-size); }
+h3 { font-size: var(--h3-size); font-weight: 600; }
+p  { font-size: var(--body-size); color: var(--ink); }
+strong { color: var(--green); font-weight: 600; }
+em { color: var(--orange); font-style: italic; }
+a { color: var(--orange); text-decoration: none; border-bottom: 1px solid rgba(220,90,24,0.35); }
+code { font-family: var(--font-mono); }
+
+/* eyebrow / section label above titles */
+.eyebrow {
+    display: inline-flex; align-items: center; gap: .5em;
+    font-family: var(--font-mono); font-size: var(--small-size); font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--orange);
+    margin-bottom: clamp(.5rem, 1.4vw, 1rem);
+}
+.eyebrow::before { content: ""; width: clamp(18px,2.2vw,34px); height: 2px; background: var(--orange); }
+
+.slide-title {
+    font-size: var(--h2-size); margin-bottom: var(--content-gap);
+    position: relative; max-width: 22ch;
+}
+.slide-title .mark { color: var(--orange); }
+/* orange underline accent under titles */
+.slide-title.underline::after {
+    content: ""; display: block; width: clamp(48px,6vw,90px); height: 5px;
+    margin-top: .4em; background: var(--orange); border-radius: 3px;
+}
+
+.lead { font-size: clamp(.92rem,1.55vw,1.28rem); color: var(--muted); max-width: 60ch; }
+
+/* ===========================================
+   REVEAL ANIMATIONS (staggered fade-up)
+   =========================================== */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.slide.visible .reveal:nth-child(1){transition-delay:.05s}
+.slide.visible .reveal:nth-child(2){transition-delay:.13s}
+.slide.visible .reveal:nth-child(3){transition-delay:.21s}
+.slide.visible .reveal:nth-child(4){transition-delay:.29s}
+.slide.visible .reveal:nth-child(5){transition-delay:.37s}
+.slide.visible .reveal:nth-child(6){transition-delay:.45s}
+.slide.visible .reveal:nth-child(7){transition-delay:.53s}
+.slide.visible .reveal:nth-child(8){transition-delay:.61s}
+
+/* ===========================================
+   BULLET LISTS
+   =========================================== */
+ul.bullets { list-style: none; display: flex; flex-direction: column; gap: clamp(.4rem,1.1vh,.95rem); }
+ul.bullets li { font-size: var(--body-size); padding-left: 1.5em; position: relative; color: var(--ink); }
+ul.bullets li::before {
+    content: ""; position: absolute; left: 0; top: .55em;
+    width: .55em; height: .55em; background: var(--orange); border-radius: 2px; transform: rotate(45deg);
+}
+ul.bullets li.sub { padding-left: 2.8em; font-size: calc(var(--body-size) * .95); color: var(--muted); }
+ul.bullets li.sub::before { left: 1.3em; background: var(--green-mid); width: .4em; height: .4em; }
+ul.bullets ul { list-style: none; margin-top: .35em; display: flex; flex-direction: column; gap: .3em; }
+
+/* tight body bullets used inside columns */
+.col ul.bullets li { font-size: calc(var(--body-size) * .94); }
+
+/* ===========================================
+   LAYOUT PRIMITIVES
+   =========================================== */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1rem,3vw,2.8rem); align-items: start; }
+.two-col.media { grid-template-columns: 1.05fr .95fr; align-items: center; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(.7rem,1.6vw,1.3rem); }
+.col { display: flex; flex-direction: column; gap: var(--element-gap); }
+
+/* ===========================================
+   CARDS
+   =========================================== */
+.card {
+    background: #fff; border: 1px solid var(--line); border-radius: 14px;
+    padding: clamp(.8rem,1.8vw,1.5rem);
+    box-shadow: 0 1px 0 rgba(0,0,0,.02), 0 12px 30px -22px rgba(20,60,46,.4);
+}
+.card h3 { margin-bottom: .35em; }
+.card .num { font-family: var(--font-mono); color: var(--orange); font-weight: 700; font-size: .9em; }
+
+/* library / stack chips */
+.stack-list { display: flex; flex-direction: column; gap: clamp(.45rem,1.1vw,.85rem); }
+.stack-item { display: flex; align-items: baseline; gap: .9em; padding: clamp(.5rem,1.1vw,.8rem) clamp(.7rem,1.4vw,1rem);
+    background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--orange); border-radius: 10px; }
+.stack-item .lib { font-family: var(--font-mono); font-weight: 600; color: var(--green); white-space: nowrap; font-size: calc(var(--body-size)*.95); }
+.stack-item .desc { color: var(--muted); font-size: calc(var(--body-size)*.95); }
+
+/* pro/con dual cards */
+.judge { border-radius: 14px; padding: clamp(.8rem,1.7vw,1.4rem); }
+.judge.good { background: var(--green-soft); border: 1px solid #BcD8C7; }
+.judge.bad  { background: var(--orange-tint); border: 1px solid #F2CDA8; }
+.judge h3 { display: flex; align-items: center; gap: .4em; }
+.judge.good h3 { color: var(--green-mid); }
+.judge.bad h3 { color: var(--orange); }
+
+/* ===========================================
+   QUERY / QUESTION CARD  (replaces the markdown styled divs)
+   styled like a search prompt
+   =========================================== */
+.query-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: clamp(1rem,2.6vw,2.2rem) clamp(1.2rem,3vw,2.6rem);
+    position: relative;
+    box-shadow: 0 18px 44px -28px rgba(20,60,46,.55);
+    max-width: 60ch; margin: 0 auto;
+}
+.query-card::before {
+    content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 5px;
+    background: var(--orange); border-radius: 0 4px 4px 0;
+}
+.query-card .q-label {
+    font-family: var(--font-mono); font-size: var(--small-size); letter-spacing: .12em;
+    text-transform: uppercase; color: var(--orange); display: block; margin-bottom: .6em;
+}
+.query-card .q-text {
+    font-family: var(--font-display); font-size: clamp(1.05rem, 2.1vw, 1.7rem);
+    color: var(--green); line-height: 1.25; font-weight: 500;
+}
+.query-card.sm .q-text { font-size: clamp(.95rem,1.7vw,1.35rem); }
+.query-card .q-text::before { content: "“"; color: var(--orange); }
+.query-card .q-text::after  { content: "”"; color: var(--orange); }
+.query-card.plain .q-text::before, .query-card.plain .q-text::after { content: ""; }
+
+/* ===========================================
+   CODE BLOCKS
+   =========================================== */
+.codeblock { background: var(--green); border-radius: 12px; overflow: hidden;
+    box-shadow: 0 16px 40px -26px rgba(20,60,46,.8); border: 1px solid #0d2a20; }
+.code-head { display: flex; align-items: center; gap: .5em; padding: .5em .9em; background: #0E2E22; border-bottom: 1px solid #0a241b; }
+.code-head .dot { width: 11px; height: 11px; border-radius: 50%; }
+.code-head .dot.r{background:#F0913F}.code-head .dot.y{background:#E9C46A}.code-head .dot.g{background:#7DB89A}
+.code-head .fname { margin-left: auto; font-family: var(--font-mono); font-size: var(--small-size); color: #9BC4B0; }
+.codeblock pre { margin: 0; padding: clamp(.7rem,1.6vw,1.1rem) clamp(.9rem,1.8vw,1.3rem); overflow: hidden; }
+.codeblock code { font-family: var(--font-mono); font-size: clamp(.68rem,1.15vw,.98rem); color: #EAF3EE; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.codeblock .cm { color: #7FA892; font-style: italic; }   /* comment */
+.codeblock .pr { color: #F0913F; }                        /* prompt / accent */
+.codeblock .kw { color: #F6B27A; }                         /* keyword */
+.codeblock .st { color: #BFE3CE; }                         /* string */
+
+/* inline code */
+p code, li code, td code { background: var(--bg-deep); color: var(--green); padding: .1em .4em; border-radius: 5px; font-size: .88em; }
+
+/* ===========================================
+   TABLES
+   =========================================== */
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--body-size); background: #fff;
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.data-table th { background: var(--green); color: #fff; font-family: var(--font-body); font-weight: 600;
+    text-align: left; padding: clamp(.5rem,1.2vw,.9rem) clamp(.6rem,1.4vw,1.1rem); font-size: calc(var(--body-size)*.95); }
+.data-table td { padding: clamp(.45rem,1.1vw,.8rem) clamp(.6rem,1.4vw,1.1rem); border-top: 1px solid var(--line); vertical-align: top; }
+.data-table tr:nth-child(even) td { background: var(--bg-alt); }
+.data-table td:first-child { font-weight: 600; color: var(--green); }
+.data-table .hi { color: var(--orange); font-weight: 700; }
+
+/* ===========================================
+   STAT / METRIC CALLOUTS
+   =========================================== */
+.stats { display: flex; gap: clamp(1rem,3vw,2.5rem); flex-wrap: wrap; }
+.stat { display: flex; flex-direction: column; }
+.stat .big { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem,4.5vw,3.4rem); color: var(--orange); line-height: 1; }
+.stat .lbl { font-size: var(--small-size); color: var(--muted); margin-top: .35em; max-width: 18ch; }
+
+/* ===========================================
+   FIGURE (framed image + caption)
+   =========================================== */
+.figure { display: flex; flex-direction: column; align-items: center; gap: .55em; }
+.figure img { border-radius: 12px; border: 1px solid var(--line); background: #fff; padding: 6px;
+    box-shadow: 0 18px 44px -30px rgba(20,60,46,.6); max-height: min(56vh, 480px); }
+.figure.tall img { max-height: min(62vh, 560px); }
+.figure figcaption { font-size: var(--small-size); color: var(--muted); text-align: center; }
+.figure figcaption a { font-size: inherit; }
+
+/* quote / blockquote */
+blockquote { border-left: 4px solid var(--orange); padding: clamp(.5rem,1.4vw,1rem) clamp(.8rem,2vw,1.4rem);
+    background: var(--bg-alt); border-radius: 0 12px 12px 0; font-family: var(--font-display);
+    font-size: clamp(.92rem,1.55vw,1.2rem); color: var(--green); font-style: italic; }
+
+/* time pill */
+.pill { display: inline-flex; align-items: center; gap: .4em; font-family: var(--font-mono);
+    font-size: var(--small-size); color: var(--orange); background: var(--orange-tint);
+    border: 1px solid #F2CDA8; padding: .25em .7em; border-radius: 999px; font-weight: 500; }
+.pill::before { content: "⏱"; }
+
+/* tag chip (no clock) */
+.tag { display: inline-flex; font-family: var(--font-mono); font-size: var(--small-size); letter-spacing: .04em;
+    color: var(--green-mid); background: var(--green-soft); border: 1px solid #BcD8C7; padding: .2em .65em; border-radius: 999px; }
+
+/* ===========================================
+   SECTION DIVIDER SLIDES
+   =========================================== */
+.divider { background:
+        radial-gradient(ellipse 80% 70% at 85% 15%, rgba(220,90,24,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 0% 100%, rgba(20,60,46,0.10) 0%, transparent 55%),
+        var(--bg); }
+.divider .slide-content { justify-content: center; }
+.divider .sec-num { font-family: var(--font-mono); font-size: clamp(2.6rem,9vw,7rem); font-weight: 700;
+    color: transparent; -webkit-text-stroke: 2px var(--orange); line-height: .9; letter-spacing: -.02em; }
+.divider .sec-title { font-size: clamp(2rem,6vw,4.6rem); color: var(--green); margin: .12em 0 .3em; max-width: 18ch; }
+.divider .sec-title .mark { color: var(--orange); }
+.divider .sec-meta { display: flex; gap: .7em; align-items: center; flex-wrap: wrap; }
+
+/* big hairline rule */
+.rule { height: 1px; background: var(--line); width: 100%; }
+
+/* ===========================================
+   TITLE (HERO) SLIDE
+   =========================================== */
+.hero { background:
+        radial-gradient(ellipse 70% 60% at 90% 10%, rgba(220,90,24,0.13) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 70% at 5% 95%, rgba(20,60,46,0.12) 0%, transparent 55%),
+        var(--bg); }
+.hero .slide-content { justify-content: center; }
+.hero h1 { font-size: var(--title-size); font-weight: 600; max-width: 18ch; color: var(--green); }
+.hero h1 .mark { color: var(--orange); font-style: italic; font-weight: 500; }
+.hero .subtitle { font-family: var(--font-display); font-size: clamp(1.1rem,2.4vw,1.9rem); color: var(--green-mid);
+    font-style: italic; margin-top: .5em; }
+.hero .meta-row { display: flex; gap: .8em; align-items: center; flex-wrap: wrap; margin-top: clamp(1rem,2.5vw,1.8rem); }
+.hero .repo { font-family: var(--font-mono); font-size: var(--small-size); color: var(--muted); margin-top: 1.2em; word-break: break-all; }
+.hero .repo a { color: var(--green-mid); }
+.handle { font-family: var(--font-mono); color: var(--orange); }
+
+/* floating decorative search glyph on hero */
+.hero-glyph { position: absolute; right: clamp(-2rem,3vw,3rem); bottom: clamp(-2rem,4vw,2rem);
+    font-family: var(--font-display); font-size: clamp(14rem,34vw,30rem); color: rgba(20,60,46,0.04);
+    pointer-events: none; line-height: 1; }
+
+/* ===========================================
+   FIXED CHROME: progress, nav dots, counter, hint
+   =========================================== */
+.progress-bar { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--orange); z-index: 9000; transition: width .15s linear; }
+.nav-dots { position: fixed; right: clamp(10px,1.6vw,22px); top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 9px; z-index: 9000; }
+.nav-dots button { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--green-mid);
+    background: transparent; cursor: pointer; padding: 0; transition: all .25s var(--ease); }
+.nav-dots button.active { background: var(--orange); border-color: var(--orange); transform: scale(1.35); }
+.nav-dots button:hover { border-color: var(--orange); }
+.slide-counter { position: fixed; left: clamp(12px,2vw,26px); bottom: clamp(12px,2vw,22px);
+    font-family: var(--font-mono); font-size: var(--small-size); color: var(--muted); z-index: 9000; }
+.slide-counter b { color: var(--green); }
+.keyboard-hint { position: fixed; right: clamp(12px,2vw,26px); bottom: clamp(12px,2vw,22px);
+    font-family: var(--font-mono); font-size: var(--small-size); color: var(--muted); z-index: 9000; opacity: .7; }
+
+/* footer brand mark on content slides */
+.brandmark { position: absolute; left: var(--slide-padding); bottom: clamp(.6rem,1.6vw,1.4rem);
+    font-family: var(--font-mono); font-size: var(--small-size); color: var(--muted); letter-spacing: .04em; }
+
+/* ===========================================
+   INLINE EDIT MODE
+   =========================================== */
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle { position: fixed; top: 14px; left: 14px; z-index: 10001;
+    width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #fff;
+    font-size: 20px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .3s ease;
+    box-shadow: 0 8px 24px -12px rgba(0,0,0,.4); }
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: var(--orange); border-color: var(--orange); }
+.edit-banner { position: fixed; top: 14px; left: 70px; z-index: 10001;
+    display: none; align-items: center; gap: 12px; padding: 9px 16px; border-radius: 12px;
+    background: var(--green); color: #fff; font-size: var(--small-size); font-family: var(--font-mono);
+    box-shadow: 0 8px 24px -12px rgba(0,0,0,.4); }
+.edit-banner.active { display: flex; }
+.edit-banner button { font-family: var(--font-mono); font-size: var(--small-size); border: none; cursor: pointer;
+    padding: 5px 12px; border-radius: 8px; background: var(--orange); color: #fff; }
+.edit-banner button.ghost { background: rgba(255,255,255,.15); }
+body.edit-active [contenteditable] { outline: 1px dashed rgba(220,90,24,.6); outline-offset: 4px; border-radius: 4px; }
+body.edit-active [contenteditable]:focus { outline: 2px solid var(--orange); background: rgba(255,255,255,.6); }
+body.edit-active { scroll-snap-type: none; }
+</style>
+</head>
+<body>
+
+<!-- progress + nav chrome -->
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+<div class="slide-counter"><b id="curSlide">01</b> / <span id="totSlide">00</span></div>
+<div class="keyboard-hint decorative">← → navigate · E edit</div>
+
+<!-- edit chrome -->
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+<div class="edit-banner" id="editBanner">
+    <span>✎ Edit mode — click any text</span>
+    <button id="saveBtn" title="Save to browser (Ctrl+S)">Save</button>
+    <button id="exportBtn" class="ghost" title="Download a clean copy">Export</button>
+    <button id="resetBtn" class="ghost" title="Discard local edits">Reset</button>
+</div>
+
+<main id="deck">
+
+<!-- ======================================================= -->
+<!-- 1 · HERO / TITLE                                         -->
+<!-- ======================================================= -->
+<section class="slide hero">
+    <div class="slide-content">
+        <span class="eyebrow reveal">PyCon Italy 2026 · 2-hour hands-on</span>
+        <h1 class="reveal">Search in the era of <span class="mark">AI Agents</span></h1>
+        <p class="subtitle reveal">local tools for privacy, understanding (and fun)</p>
+        <div class="meta-row reveal">
+            <span class="tag">An MCP + Agentic Retrieval workshop</span>
+        </div>
+        <p class="repo reveal">repo&nbsp;→&nbsp;<a href="https://github.com/coffepowered/pycon-italy-workshop-agentic-search">github.com/coffepowered/pycon-italy-workshop-agentic-search</a></p>
+    </div>
+    <div class="hero-glyph" aria-hidden="true">⌕</div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 2 · ABOUT ME                                            -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Hello</span>
+        <h2 class="slide-title underline reveal">About me</h2>
+        <ul class="bullets reveal">
+            <li>Andrea Ruggerini — GitHub <span class="handle">@coffepowered</span></li>
+            <li>I build <strong>Search</strong> and <strong>AI</strong> things at Soource, day to day</li>
+            <li>Why this workshop: retrieval is a <em>tool</em>. It makes the LLMs truly useful.</li>
+            <li>Find me after for questions, the repo, and the slides</li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 3 · WHAT YOU'LL GET                                     -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">The deal</span>
+        <h2 class="slide-title underline reveal">What you'll get out of today</h2>
+        <ul class="bullets reveal">
+            <li>This is a workshop — it'll be a <strong>hands-on</strong> experience</li>
+            <li>But I'll give <em>framing and resources</em> too: things I find valuable</li>
+            <li>Build <strong>Retrieval</strong> tools to <strong>enhance</strong> knowledge work — not strictly coding (LLMs are great at coding, we know that)</li>
+            <li>Once done, you'll&hellip;</li>
+            <li class="sub">have experienced firsthand a few retrieval techniques — their use cases, pros &amp; cons</li>
+            <li class="sub">have a feel for <em>which technique fits which question</em> — and why eval is what drives improving them</li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 4 · DIVIDER 01 · MOTIVATION                             -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">01</div>
+        <h2 class="sec-title reveal">Motivation</h2>
+        <div class="sec-meta reveal"><span class="pill">8 min</span><span class="tag">framing, not the main course — keep it brisk</span></div>
+        <div class="two-col reveal" style="margin-top:clamp(1rem,2.5vw,2rem)">
+            <div class="col">
+                <h3>Some personal</h3>
+                <ul class="bullets">
+                    <li>Consuming information is not enough</li>
+                    <li>Our knowledge base is our <em>second brain</em></li>
+                </ul>
+            </div>
+            <div class="col">
+                <h3>Some professional</h3>
+                <ul class="bullets">
+                    <li>Useful patterns for work</li>
+                    <li>Work seems to be shifting towards <strong>building tools</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 5 · OLD WORLD vs NEW WORLD                               -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Motivation</span>
+        <h2 class="slide-title underline reveal">Old world <span class="mark">vs</span> New world</h2>
+        <table class="data-table reveal">
+            <thead><tr><th></th><th>Old world</th><th>New world</th></tr></thead>
+            <tbody>
+                <tr><td>Privacy</td><td>data stayed local, we cared</td><td>prompts &amp; files shipped to a cloud — <em>do we still?</em></td></tr>
+                <tr><td>Energy</td><td>a search was practically free</td><td>every answer burns GPU time — <em>do we care?</em></td></tr>
+                <tr><td>Information</td><td>hard to <em>obtain</em></td><td>trivial to obtain, rarely <em>consumed</em></td></tr>
+            </tbody>
+        </table>
+        <p class="lead reveal" style="margin-top:var(--content-gap)">Yet, powerful LLMs are here to stay — <strong>and to improve</strong>.</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 6 · DIVIDER 02 · MCP                                     -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">02</div>
+        <h2 class="sec-title reveal">MCP <span class="mark">·</span> Intro &amp; set-up</h2>
+        <div class="sec-meta reveal"><span class="pill">12 min</span><span class="tag">an MCP interface for our retrieval tools</span></div>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 7 · MCP IN THIS WORKSHOP                                 -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">MCP</span>
+        <h2 class="slide-title reveal">Not a workshop <span class="mark">about</span> MCP — but we'll use it</h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <ul class="bullets reveal">
+                <li>We stay <strong>Host/Client independent</strong> — use the tool you want</li>
+                <li>MCP is standard in the industry — worth using</li>
+                <li>The Python MCP toolkit has a nice <strong>inspector</strong></li>
+            </ul>
+            <figure class="figure reveal"><img src="images/what-is-mcp.png" alt="What is MCP" /></figure>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 8 · MCP DEFINITION & RESOURCES                           -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">MCP</span>
+        <h2 class="slide-title underline reveal">Definition &amp; resources</h2>
+        <blockquote class="reveal">MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems — data sources, tools and workflows — enabling them to access key information and perform tasks.</blockquote>
+        <ul class="bullets reveal" style="margin-top:var(--content-gap)">
+            <li><a href="https://modelcontextprotocol.io/docs/getting-started/intro">Introduction</a></li>
+            <li><a href="https://modelcontextprotocol.io/docs/learn/architecture">Participants</a></li>
+            <li><a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#session-management">Advanced: Sessions</a> — we won't use it, but&hellip;</li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 9 · MCP PARTICIPANTS                                     -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">MCP</span>
+        <h2 class="slide-title reveal">Participants</h2>
+        <figure class="figure tall reveal" style="margin-top:.4rem">
+            <img src="images/2-mcp-participants.png" alt="MCP participants diagram" />
+            <figcaption>more on the <a href="https://modelcontextprotocol.io/docs/learn/architecture">architecture page</a></figcaption>
+        </figure>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 10 · MCP PRIMITIVES                                      -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">MCP</span>
+        <h2 class="slide-title underline reveal">Three core primitives</h2>
+        <p class="lead reveal">What servers can expose — the contextual info shared and the actions performed.</p>
+        <div class="grid3 reveal" style="margin-top:var(--content-gap)">
+            <div class="card">
+                <h3><span class="num">01</span> Tools</h3>
+                <p>Executable functions the AI can invoke — file ops, API calls, DB queries.</p>
+            </div>
+            <div class="card">
+                <h3><span class="num">02</span> Resources</h3>
+                <p>Data sources that provide context — file contents, DB records, API responses.</p>
+            </div>
+            <div class="card">
+                <h3><span class="num">03</span> Prompts</h3>
+                <p>Reusable templates structuring interactions — system prompts, few-shot examples.</p>
+            </div>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 11 · MCP QUESTION                                        -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content" style="align-items:center">
+        <span class="eyebrow reveal" style="align-self:center">Think about it</span>
+        <div class="query-card reveal" id="question_mcp_1">
+            <span class="q-label">Question</span>
+            <p class="q-text plain">You are building an MCP server to provide recipes from a book. Which kind of primitive are you using — and why?</p>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 12 · A MINIMAL STACK                                     -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">By design</span>
+        <h2 class="slide-title underline reveal">A minimal stack, on purpose</h2>
+        <p class="lead reveal">No heavyweight RAG framework hiding what's going on. Five small, composable pieces:</p>
+        <div class="stack-list reveal" style="margin-top:var(--content-gap)">
+            <div class="stack-item"><span class="lib">pymupdf</span><span class="desc">read &amp; render PDF pages</span></div>
+            <div class="stack-item"><span class="lib">lancedb</span><span class="desc">the <em>one</em> store — BM25 full-text <strong>and</strong> multi-vector search</span></div>
+            <div class="stack-item"><span class="lib">mlx-embeddings</span><span class="desc">ColQwen2.5 embeddings, locally on Apple Silicon</span></div>
+            <div class="stack-item"><span class="lib">fastmcp</span><span class="desc">expose the tools over MCP</span></div>
+            <div class="stack-item"><span class="lib">pydantic</span><span class="desc">typed I/O the host can serialize for free</span></div>
+        </div>
+        <p class="reveal" style="margin-top:var(--content-gap)">The point is to <em>see</em> the retrieval, not the framework.</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 13 · GET SET-UP (1/2)                                    -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Set-up · 1 of 2</span>
+        <h2 class="slide-title underline reveal">Get set-up</h2>
+        <div class="two-col reveal" style="margin-top:var(--content-gap)">
+            <div class="col">
+                <h3><span style="color:var(--orange);font-family:var(--font-mono)">1.</span> The workshop repo</h3>
+                <div class="codeblock">
+                    <div class="code-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fname">shell</span></div>
+                    <pre><code>git clone https://github.com/coffepowered/<span class="cm"> </span>
+  pycon-italy-workshop-agentic-search
+cd pycon-italy-workshop-agentic-search
+uv sync</code></pre>
+                </div>
+            </div>
+            <div class="col">
+                <h3><span style="color:var(--orange);font-family:var(--font-mono)">2.</span> A harness with an MCP client</h3>
+                <p style="font-size:var(--small-size);color:var(--muted)">I'll use <a href="https://developers.openai.com/codex/cli">codex cli</a> (Apache-licensed). Free plan is enough.</p>
+                <div class="codeblock">
+                    <div class="code-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fname">shell</span></div>
+                    <pre><code>npm install -g @openai/codex</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 14 · GET SET-UP (2/2) · sample KB + tracking             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Set-up · 2 of 2</span>
+        <h2 class="slide-title reveal"><span style="color:var(--orange);font-family:var(--font-mono)">3.</span> The sample KB <span style="font-size:.6em;color:var(--muted)">(a PDF)</span></h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <div class="col reveal">
+                <p>Download it and drop it into the <code>documents/</code> folder.</p>
+                <p style="font-size:var(--small-size);word-break:break-all"><a href="https://drive.google.com/file/d/1f4skbLlesutOawKFX6_xQYxJh4fO-0eO/view?usp=sharing">drive.google.com/file/d/1f4skbLl…</a></p>
+                <h3 style="margin-top:.6em">Optional but fun</h3>
+                <p style="font-size:var(--small-size);color:var(--muted)">Track how many tokens we burn as we go:</p>
+                <div class="codeblock">
+                    <div class="code-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fname">shell</span></div>
+                    <pre><code>bunx ccusage codex session \
+  --color --since 2026-05-30</code></pre>
+                </div>
+            </div>
+            <figure class="figure reveal"><img src="images/file-download-new.png" alt="File download" /></figure>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 15 · ONE TOOL ALREADY WIRED                              -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Starting point</span>
+        <h2 class="slide-title underline reveal">We start with one tool already wired</h2>
+        <p class="reveal"><code>server.py</code> ships with <strong>one built-in tool</strong> — a PDF <em>viewer</em>:</p>
+        <div class="codeblock reveal" style="margin:var(--content-gap) 0">
+            <div class="code-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fname">server.py</span></div>
+            <pre><code><span class="kw">get_page_for_llm</span>(pdf_path, page, mode=<span class="st">"text"</span> | <span class="st">"image"</span>)</code></pre>
+        </div>
+        <ul class="bullets reveal">
+            <li><code>mode="text"</code> → the page text (cheap)</li>
+            <li><code>mode="image"</code> → the page rendered as a PNG (layout, tables, figures)</li>
+            <li>Each exercise <strong>adds one more tool</strong> to this same server — stubs already in <code>server.py</code></li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 16 · DIVIDER 03 · EXERCISE 1 (grep)                      -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">03</div>
+        <h2 class="sec-title reveal">Exercise 1 <span class="mark">·</span> Is grep all we need?</h2>
+        <div class="sec-meta reveal" style="margin-bottom:clamp(.6rem,1.6vw,1.2rem)"><span class="pill">15 min</span><span class="tag">add the <code>grep_documents</code> tool</span></div>
+        <div class="query-card sm reveal" style="margin:0">
+            <span class="q-label">Ask Codex</span>
+            <p class="q-text">Ho voglia di una salsa con le acciughe, cerca tra i miei files</p>
+        </div>
+        <ul class="bullets reveal" style="margin-top:clamp(.7rem,1.8vw,1.3rem)">
+            <li>Watch what the agent actually does. Does it find it? How?</li>
+            <li><strong>How many tokens</strong> did it burn? (track usage 🙂)</li>
+            <li>Hold on to that number — we'll try to beat it later.</li>
+        </ul>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 17 · DIVIDER 04 · DEEP DIVE                              -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">04</div>
+        <h2 class="sec-title reveal">A deep dive on recent <span class="mark">agentic retrieval</span></h2>
+        <div class="sec-meta reveal" style="margin-bottom:clamp(.7rem,1.8vw,1.3rem)"><span class="pill">10 min</span></div>
+        <ul class="bullets reveal" style="max-width:62ch">
+            <li><strong>Evaluation is important.</strong></li>
+            <li>We have benchmarks for industrial agentic search &amp; document VQA — but for <em>personal</em> use, the judge is <em>you</em>.</li>
+            <li><strong>Efficiency is a thing</strong> — for speed <em>and</em> for the planet.</li>
+        </ul>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 18 · RETRIEVAL INTRO                                     -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Retrieval</span>
+        <h2 class="slide-title underline reveal">What is retrieval?</h2>
+        <p class="reveal">Given a query <em>q</em> and a corpus <em>C = {d₁ … dₙ}</em>, retrieval returns an ordered list <em>D ⊂ C</em> ranked by estimated relevance to <em>q</em>. A retriever learns a scoring function:</p>
+        <blockquote class="reveal" style="margin:var(--content-gap) 0">score(q, d) → ℝ&nbsp;&nbsp;— used to rank all d ∈ C</blockquote>
+        <div class="grid3 reveal">
+            <div class="card"><h3>Effectiveness</h3><p>does it surface the right documents?</p></div>
+            <div class="card"><h3>Efficiency</h3><p>millions/billions of docs in milliseconds?</p></div>
+            <div class="card"><h3>Generalization</h3><p>unseen domains &amp; query types?</p></div>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 19 · RETRIEVAL METRICS                                   -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Retrieval</span>
+        <h2 class="slide-title underline reveal">Metrics</h2>
+        <table class="data-table reveal">
+            <thead><tr><th>Metric</th><th>What it measures</th><th>Intuition</th></tr></thead>
+            <tbody>
+                <tr><td>Precision@k</td><td>fraction of top-k that are relevant</td><td>rel. docs in top-k / k</td></tr>
+                <tr><td>Recall@k</td><td>fraction of all relevant docs found in top-k</td><td>rel. docs in top-k / total rel.</td></tr>
+                <tr><td>NDCG@k ⭐</td><td>graded relevance + a position discount</td><td>rewards the <em>most</em> relevant docs <em>highest</em></td></tr>
+            </tbody>
+        </table>
+        <p class="lead reveal" style="margin-top:var(--content-gap)">Precision and recall trade off; <strong>NDCG</strong> is the one to watch when <em>ranking order</em> matters.</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 20 · RETRIEVER AS A TOOL                                 -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Agentic search</span>
+        <h2 class="slide-title reveal">The retriever as a <span class="mark">tool</span></h2>
+        <figure class="figure tall reveal" style="margin-top:.4rem"><img src="images/retriever-as-tool.png" alt="Retriever as a tool for agentic search" /></figure>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 21 · BENCHMARK QUESTION (EN)                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content" style="align-items:center">
+        <span class="eyebrow reveal" style="align-self:center">Benchmark · example question (EN)</span>
+        <div class="query-card sm reveal" id="question_retrieval_en">
+            <span class="q-label">Multi-hop</span>
+            <p class="q-text">A late 19th-century mock-heroic poem describes three Roman deities — two male, one female — resting at the 'Corona' inn in a town contested by Bologna and Modena. A one-eyed innkeeper created a famous ring-shaped stuffed pasta by peeping through a keyhole and imitating the navel of the sole female deity. Name this goddess, and the primary profession of the Florentine-born author who wrote the poem.</p>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 22 · BENCHMARK QUESTION (IT)                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content" style="align-items:center">
+        <span class="eyebrow reveal" style="align-self:center">La domanda · versione italiana</span>
+        <div class="query-card sm reveal" id="question_retrieval_it">
+            <span class="q-label">Multi-hop</span>
+            <p class="q-text">Un poemetto eroicomico di fine Ottocento descrive tre divinità romane — due maschi e una femmina — che si fermano alla locanda 'Corona', in una cittadina contesa tra Bologna e Modena. Un oste guercio creò una celebre pasta ripiena ad anello spiando dal buco della serratura e imitando l'ombelico dell'unica divinità femminile. Qual è il nome della dea, e la professione principale dell'autore di origini fiorentine?</p>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 23 · WHAT DOES IT TAKE / WHAT LLMs CAN DO                -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">What does it take?</span>
+        <h2 class="slide-title underline reveal">What LLMs <span class="mark">can</span> do — and why they keep improving</h2>
+        <ul class="bullets reveal">
+            <li>Modern LLM agents <strong>iterate</strong>: search → read → reason → search again — genuinely multi-hop.</li>
+            <li>The key unlock for <em>research</em>: <strong>separate the retriever's contribution from the agent's</strong>.</li>
+            <li>A wrong answer — a <em>retrieval</em> miss (never found the doc) or a <em>reasoning</em> miss (had it, blew the inference)?</li>
+            <li>Measuring those <strong>two halves independently</strong> drove a lot of recent progress.</li>
+            <li>That separation is exactly what a controlled-corpus benchmark like <strong>BrowseComp-Plus</strong> gives us 👇</li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 24 · BROWSECOMP-PLUS INTRO                               -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BrowseComp-Plus · ACL 2026</span>
+        <h2 class="slide-title underline reveal">A fixed-corpus benchmark for deep-research agents</h2>
+        <p class="lead reveal">LLMs that iteratively issue search queries, retrieve documents, and reason to answer complex multi-hop questions.</p>
+        <h3 class="reveal" style="margin-top:var(--content-gap);color:var(--orange)">Problems with vanilla BrowseComp</h3>
+        <ul class="bullets reveal">
+            <li>Relies on live, black-box web APIs (Google/Bing) → <strong>non-reproducible</strong></li>
+            <li>Can't isolate retriever failures from reasoning failures — the two are entangled</li>
+            <li>Different runs see different web states → no fair comparison</li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 25 · BROWSECOMP-PLUS CONTROLLED CORPUS                   -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BrowseComp-Plus</span>
+        <h2 class="slide-title underline reveal">A controlled corpus</h2>
+        <p class="reveal"><strong>100,195</strong> human-verified documents, built in two stages:</p>
+        <ul class="bullets reveal" style="margin:var(--content-gap) 0">
+            <li><strong>Automated evidence gathering</strong> — o3 collects candidate supporting docs for each of the 830 queries</li>
+            <li><strong>Human verification</strong> — annotators confirm true positives and label relevance</li>
+            <li><strong>Hard-negative mining</strong> — semantically similar but non-answering docs stress-test retrievers</li>
+        </ul>
+        <p class="lead reveal">Each query ships with <strong>gold documents</strong> and <strong>hard negatives</strong> → isolated evaluation of <em>retriever</em> and <em>agent</em> independently.</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 26 · BROWSECOMP-PLUS ORIGINAL RESULTS                    -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BrowseComp-Plus · original results</span>
+        <h2 class="slide-title reveal">Two components, measured <span class="mark">independently</span></h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <div class="col reveal">
+                <div class="stats" style="margin-bottom:var(--content-gap)">
+                    <div class="stat"><span class="big">3.86%</span><span class="lbl">Search-R1 (open-source) · BM25</span></div>
+                    <div class="stat"><span class="big">55.9%</span><span class="lbl">GPT-5 · BM25</span></div>
+                    <div class="stat"><span class="big">70.1%</span><span class="lbl">GPT-5 + Qwen3-Embedding-8B retriever</span></div>
+                </div>
+                <p style="font-size:var(--small-size)"><strong>Retriever swap matters:</strong> better accuracy <em>and</em> fewer search calls — retriever quality is now a first-class, isolatable variable. <a href="https://github.com/texttron/BrowseComp-Plus">source</a></p>
+            </div>
+            <figure class="figure reveal"><img src="images/browse-com-plus-original.png" alt="BrowseComp-Plus original results" /></figure>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 27 · BROWSECOMP-PLUS MY TAKE                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BrowseComp-Plus · my take</span>
+        <h2 class="slide-title reveal">Even <span class="mark">"tiny"</span> local models are getting good</h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <div class="col reveal">
+                <p>Reproducible research is as needed as open-source software! Yet that's not the whole story.</p>
+                <div class="judge bad" style="margin-top:var(--content-gap)">
+                    <h3>~800k tokens</h3>
+                    <p>In a <strong>personal experiment</strong>, that's the average it took to reach that score — a number I trust because I measured it myself. Good, but impractical.</p>
+                </div>
+            </div>
+            <figure class="figure reveal"><img src="images/browse-comp-plus-local-model.png" alt="BrowseComp-Plus local model" /></figure>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 28 · BROWSECOMP-PLUS RECENT RESULTS                      -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BrowseComp-Plus · recent results</span>
+        <h2 class="slide-title reveal">Recent improvements</h2>
+        <figure class="figure tall reveal" style="margin-top:.4rem">
+            <img src="images/bplus-improvement-rogge.png" alt="BrowseComp-Plus recent improvements" />
+            <figcaption>HF <a href="https://huggingface.co/spaces/Tevatron/BrowseComp-Plus">leaderboard</a></figcaption>
+        </figure>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 29 · BROWSECOMP-PLUS COST OF REPRODUCIBILITY             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BrowseComp-Plus</span>
+        <h2 class="slide-title reveal">The cost of <span class="mark">reproducibility</span></h2>
+        <figure class="figure tall reveal" style="margin-top:.4rem"><img src="images/pi-serini-bplus-repro-cost.png" alt="Cost of reproducibility" /></figure>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 30 · DIVIDER 05 · BM25                                   -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">05</div>
+        <h2 class="sec-title reveal">Text Ranking <span class="mark">·</span> BM25</h2>
+        <div class="sec-meta reveal" style="margin-bottom:clamp(.7rem,1.8vw,1.3rem)"><span class="pill">10 min</span></div>
+        <div class="two-col media reveal">
+            <blockquote style="margin:0">Okapi <strong>BM25</strong> (Best Matching) is a ranking function used by search engines to estimate the relevance of documents to a query — a bag-of-words function built on the probabilistic retrieval framework of the 1970s–80s.</blockquote>
+            <figure class="figure"><img src="images/bm25-scoring.png" alt="BM25 scoring formula" /></figure>
+        </div>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 31 · MODERN BM25 SOFTWARE                                -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">BM25</span>
+        <h2 class="slide-title underline reveal">Modern BM25 software</h2>
+        <ul class="bullets reveal">
+            <li>A barebone BM25 index starts at about <strong>25% the size of the text</strong> (rule of thumb). Expect more in applications.</li>
+            <li>Engines supporting BM25 typically have very interesting features for text search — <strong>tokenizers, phrase search, n-grams</strong>&hellip;</li>
+        </ul>
+        <blockquote class="reveal" style="margin-top:var(--content-gap)">Let's take a look at <strong>LanceDB</strong>. In a notebook, like the good old days&nbsp;→&nbsp;<code>scripts/lance_fts.py</code></blockquote>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 32 · DIVIDER 06 · EXERCISE 2                             -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">06</div>
+        <h2 class="sec-title reveal">Exercise 2 <span class="mark">·</span> BM25 search</h2>
+        <div class="sec-meta reveal"><span class="pill">20 min</span><span class="tag">implement <code>search_documents_bm25</code></span></div>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 33 · EXERCISE 2 · DO IT                                  -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Exercise 2 · track usage 🙂</span>
+        <h2 class="slide-title underline reveal">Implement it, then ask Codex</h2>
+        <ul class="bullets reveal">
+            <li>Implement the <code>search_documents_bm25</code> tool (stub in <code>server.py</code>).</li>
+            <li>Remember there's the <strong>index building</strong> phase as well!</li>
+        </ul>
+        <div class="query-card sm reveal" style="margin-top:var(--content-gap)">
+            <span class="q-label">Ask Codex</span>
+            <p class="q-text">polpette di carne lessata avanzata</p>
+        </div>
+        <p class="lead reveal" style="margin-top:var(--content-gap)">Are you done?</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 34 · EXERCISE 2 · COMPARE                                -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content" style="align-items:center;text-align:center">
+        <span class="eyebrow reveal" style="align-self:center">Exercise 2 · the payoff</span>
+        <h2 class="slide-title reveal" style="text-align:center;max-width:24ch">How long — and how many tokens — to find&hellip;</h2>
+        <div class="query-card sm reveal" style="margin:var(--content-gap) auto"><p class="q-text">polpette di carne lessata avanzata</p></div>
+        <p class="lead reveal" style="margin:0 auto">&hellip;with our new tool <strong>versus grep</strong> in Exercise 1?</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 35 · BM25 FOR DEEP RESEARCH?                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">A provocation</span>
+        <h2 class="slide-title reveal">Is BM25 the solution for <span class="mark">deep research</span>?</h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <div class="col reveal">
+                <p>Who knows — but people are talking about this.</p>
+                <p style="font-size:var(--small-size)">From Doug Turnbull's <a href="https://www.youtube.com/watch?v=UXQ916WRK0A">newsletter</a>, elaborated from <a href="https://arxiv.org/abs/2602.21456">this paper</a>.</p>
+            </div>
+            <figure class="figure reveal"><img src="images/turnbull-revisiting.png" alt="Revisiting BM25 for deep research" /></figure>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 36 · DIVIDER 07 · VECTOR RETRIEVAL                       -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">07</div>
+        <h2 class="sec-title reveal">Brief notes on <span class="mark">vector retrieval</span></h2>
+        <div class="sec-meta reveal"><span class="pill">10 min</span><span class="tag">from lexical to semantic ranking</span></div>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 37 · LEXICAL -> SEMANTIC                                 -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Vector retrieval</span>
+        <h2 class="slide-title underline reveal">From lexical to semantic</h2>
+        <div class="two-col" style="margin-top:var(--content-gap)">
+            <ul class="bullets reveal">
+                <li>BM25 matches <strong>surface tokens</strong> — exact words, no meaning</li>
+                <li>"car" and "automobile" are just different tokens, full stop</li>
+                <li><strong>dense / vector</strong> retrieval encodes <em>meaning</em> into numeric vectors</li>
+                <li>an <strong>embedding model</strong> maps query &amp; doc into the <em>same</em> space</li>
+                <li>ranking is then just <strong>vector similarity</strong> (e.g. cosine)</li>
+            </ul>
+            <ul class="bullets reveal">
+                <li><strong>sparse</strong> (BM25): high-dim, mostly zeros, one weight per term</li>
+                <li><strong>dense</strong>: a few hundred/thousand floats, every dim carries signal</li>
+                <li>not either/or — in practice you often <strong>combine both (hybrid)</strong></li>
+                <li>two flavors: <strong>single-vector</strong> (bi-encoder) &amp; <strong>late-interaction / multi-vector</strong></li>
+            </ul>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 38 · SINGLE VECTOR RETRIEVAL                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Single-vector (bi-encoder)</span>
+        <h2 class="slide-title reveal">We know them from <span class="mark">2023/24 RAG</span></h2>
+        <div class="two-col" style="margin:var(--content-gap) 0">
+            <div class="judge good reveal">
+                <h3>✓ The good</h3>
+                <ul class="bullets" style="margin-top:.4em">
+                    <li>very easy to get started</li>
+                    <li>excellent when fine-tuned on your domain</li>
+                    <li>handles synonyms &amp; "semantic" meaning</li>
+                    <li>indexing is well understood</li>
+                </ul>
+            </div>
+            <div class="judge bad reveal">
+                <h3>✗ The bad</h3>
+                <ul class="bullets" style="margin-top:.4em">
+                    <li>out-of-domain generalization</li>
+                    <li>similarity ≠ relevance</li>
+                    <li>cramming 'everything' in a single vector</li>
+                </ul>
+            </div>
+        </div>
+        <p class="reveal" style="font-size:var(--small-size)"><strong>Why they still rule production:</strong> one vector/doc → a single ANN lookup. Blazing fast, tiny index, scales to billions. Speed/cost/simplicity wins, and fine-tuning closes most of the gap.</p>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 39 · LATE INTERACTION MODELS                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Late interaction (ColBERT-style)</span>
+        <h2 class="slide-title reveal">One vector per <span class="mark">token</span>, not per doc</h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <div class="col reveal">
+                <ul class="bullets">
+                    <li>keeps <strong>one vector per token</strong> instead of pooling them away</li>
+                    <li>per query token: max similarity vs every doc token (<strong>MaxSim</strong>), then <strong>sum</strong> the maxima → score</li>
+                    <li>token-level matching is also <strong>explainable</strong></li>
+                </ul>
+                <p style="font-size:var(--small-size);margin-top:.5em"><strong>The middle ground:</strong> bi-encoder is fast but lossy; cross-encoder is accurate but doesn't scale; late interaction precomputes doc vectors offline, encoding only the query at runtime.</p>
+                <p style="font-size:var(--small-size)"><strong>Tradeoff:</strong> better out-of-domain &amp; precision — at the cost of a <em>much larger index</em>.</p>
+            </div>
+            <figure class="figure reveal"><img src="images/late-interaction-weviate.png" alt="Late interaction MaxSim" /></figure>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 40 · LATE INTERACTION VIZ                                -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content" style="align-items:center;text-align:center">
+        <span class="eyebrow reveal" style="align-self:center">Late interaction · the intuition</span>
+        <h2 class="slide-title reveal" style="text-align:center;max-width:22ch">A visual walk-through of how MaxSim works</h2>
+        <div class="query-card plain reveal" style="margin:var(--content-gap) auto">
+            <span class="q-label">Watch</span>
+            <p class="q-text" style="word-break:break-all"><a href="https://gemini.google.com/share/d01423c051fc">gemini.google.com/share/d01423c051fc</a></p>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 41 · MULTIMODAL LATE INTERACTION                         -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Multimodal late interaction</span>
+        <h2 class="slide-title reveal">Have a clear <span class="mark">advantage</span></h2>
+        <figure class="figure tall reveal" style="margin-top:.4rem"><img src="images/multimodal-late-interaction-weviate.png" alt="Multimodal late interaction" /></figure>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 42 · DIVIDER 08 · EXERCISE 3                             -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">08</div>
+        <h2 class="sec-title reveal">Exercise 3 <span class="mark">·</span> multimodal search</h2>
+        <div class="sec-meta reveal" style="margin-bottom:clamp(.6rem,1.6vw,1.2rem)"><span class="tag">optional</span><span class="tag">🧭 Apple Silicon — or watch the demo</span></div>
+        <p class="lead reveal" style="max-width:60ch">If the model is already downloaded and you're on Apple Silicon, give it a go. Otherwise we'll run it <strong>together</strong> as a demo. Non-mac / text-only folks: pair up and watch.</p>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 43 · EXERCISE 3 · GOAL + COMMANDS                        -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Exercise 3 · track usage 🙂</span>
+        <h2 class="slide-title underline reveal">Goal: <code>search_documents_multimodal</code></h2>
+        <div class="two-col media" style="margin-top:var(--content-gap)">
+            <div class="col reveal">
+                <p style="font-size:calc(var(--body-size)*.95)">ColQwen2.5 reads each page <em>as an image</em> — matching figures, tables &amp; layout that BM25 never sees. One object (<code>ColQwenIndex</code>) both <strong>builds</strong> (render &amp; embed visual pages) and <strong>searches</strong> (MaxSim, exact flat scan).</p>
+                <p style="font-size:var(--small-size);color:var(--muted)">Safe to <strong>Ctrl-C and rerun</strong> — it resumes from the next un-embedded page. Then expose it as the MCP tool.</p>
+            </div>
+            <div class="codeblock reveal">
+                <div class="code-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fname">shell</span></div>
+                <pre><code><span class="cm"># build the index (-v for per-page progress)</span>
+uv run python -m solutions.indexer documents -v
+
+<span class="cm"># cap pages per doc to keep it cheap</span>
+... documents --max-pages-per-doc 5 -v
+
+<span class="cm"># build + query in one go</span>
+... documents --query <span class="st">"energy AI"</span> --k 10 -v
+
+<span class="cm"># query an ALREADY-built index</span>
+... --no-build --query <span class="st">"energy AI"</span> --k 10 -v
+
+<span class="cm"># re-index from scratch</span>
+... documents --force -v</code></pre>
+            </div>
+        </div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 44 · EXERCISE 3 · QUESTION                               -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content" style="align-items:center;text-align:center">
+        <span class="eyebrow reveal" style="align-self:center">Exercise 3 · the answer is in a diagram</span>
+        <h2 class="slide-title reveal" style="text-align:center;max-width:26ch">How long — and how many tokens — to find the page that <span class="mark">shows</span>&hellip;</h2>
+        <div class="query-card sm reveal" style="margin:var(--content-gap) auto"><p class="q-text">lo schema di come la RAG è evoluta dal 2023 al 2026</p></div>
+        <p class="lead reveal" style="margin:0 auto 1rem">&hellip;an answer in a <strong>diagram</strong>, not in its words. How does it compare to BM25?</p>
+        <div class="query-card plain sm reveal" id="question_ex3" style="margin:0 auto"><span class="q-label">Also try</span><p class="q-text">Find data about the energy consumption of data centers.</p></div>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 45 · DIVIDER 09 · CONCLUSIONS                            -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <div class="sec-num reveal">09</div>
+        <h2 class="sec-title reveal">Conclusions</h2>
+        <div class="sec-meta reveal"><span class="pill">5 min</span><span class="tag">what we built &amp; what to take home</span></div>
+    </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- 46 · CONCLUSIONS · TAKE HOME                             -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Take home · 1 of 2</span>
+        <h2 class="slide-title underline reveal">What to take home</h2>
+        <ul class="bullets reveal">
+            <li><strong>Retrieval is a tool, not a framework.</strong> A handful of libraries took us agentic grep → BM25 → multimodal late-interaction — no LangChain required.</li>
+            <li><strong>The technique follows the question.</strong> grep for exact strings, BM25 for lexical recall, late-interaction/multimodal for <em>meaning</em> and <em>layout</em>. Each exercise broke the previous query for a reason.</li>
+            <li><strong>Efficiency is a first-class metric.</strong> Speed and the planet both count — but we still need fairly large models for good agentic search.</li>
+            <li><strong>Agents &amp; harnesses keep improving</strong> — but mental models and the ability to <em>compose</em> tools stay the durable skill.</li>
+        </ul>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 47 · CONCLUSIONS · EVAL IN 5 LINES                       -->
+<!-- ======================================================= -->
+<section class="slide">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Take home · 2 of 2</span>
+        <h2 class="slide-title underline reveal">Eval drives improvement — the 5-line version</h2>
+        <ul class="bullets reveal">
+            <li><strong>Collect real queries</strong> — log what you (or the LLM) actually ask your KB. Don't invent them.</li>
+            <li><strong>Label a handful</strong> — for ~20–50 queries, note which page/doc <em>should</em> come back. You are the judge.</li>
+            <li><strong>Score your tools</strong> — run grep / BM25 / multimodal, count hits@k. "Better" is now a number, not a vibe.</li>
+            <li><strong>Optimize the weak half</strong> — chunking, tokenizer, retriever, prompt. Re-run. Repeat.</li>
+        </ul>
+        <blockquote class="reveal" style="margin-top:var(--content-gap)">Match the tool to the query you <em>actually</em> expect. Most personal-KB questions aren't BrowseComp-style deep research — they're "where did I read X". Build for <strong>your</strong> interests.</blockquote>
+    </div>
+    <span class="brandmark">Agentic Search · PyCon IT 2026</span>
+</section>
+
+<!-- ======================================================= -->
+<!-- 48 · CLOSING · GO DEEPER + THANKS                        -->
+<!-- ======================================================= -->
+<section class="slide divider">
+    <div class="slide-content">
+        <span class="eyebrow reveal">Thank you</span>
+        <h2 class="sec-title reveal" style="font-size:clamp(1.6rem,4.6vw,3.4rem)">It all runs <span class="mark">locally, today</span></h2>
+        <p class="lead reveal" style="margin-bottom:var(--content-gap)">&hellip;while minimizing what you expose and what you spend — data, energy, inference cost.</p>
+        <h3 class="reveal" style="color:var(--orange);margin-bottom:.4em">To go deeper</h3>
+        <ul class="bullets reveal" style="max-width:64ch">
+            <li>A full tour of RAG, document context &amp; AI agents, 2023→2026 — @hexapode (<a href="https://drive.google.com/file/d/1IQ7G0aEyQQNBaxTBFkJ6YD-xvPZ5QM67/view">link</a>)</li>
+            <li>Search for code &amp; text is running fast, <a href="https://huggingface.co/blog/lightonai/colgrep-lateon-code">even locally</a></li>
+            <li>Recent retrieval talk by @bclavie, mixedbread.ai (<a href="https://docs.google.com/presentation/d/1GmvpRgre2zamJ5zKxxhtj-eKL4j6VqfP3wO2_o210Z0/edit">link</a>)</li>
+            <li>What agentic retrieval looks like — <a href="https://hornet.dev/blog/this-is-what-agentic-retrieval-looks-like">blog post</a> by Jo Bergum</li>
+        </ul>
+        <p class="repo reveal" style="margin-top:var(--content-gap);font-family:var(--font-mono);font-size:var(--small-size);color:var(--muted)">Andrea Ruggerini · <span class="handle">@coffepowered</span> · github.com/coffepowered/pycon-italy-workshop-agentic-search</p>
+    </div>
+</section>
+
+</main>
+
+<script>
+/* ===========================================================
+   SLIDE PRESENTATION CONTROLLER
+   keyboard / wheel / touch nav · progress · dots · counter
+   =========================================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.current = 0;
+        this.navDots = document.getElementById('navDots');
+        this.progressBar = document.getElementById('progressBar');
+        this.curEl = document.getElementById('curSlide');
+        this.totEl = document.getElementById('totSlide');
+        this.totEl.textContent = String(this.slides.length).padStart(2,'0');
+        this.wheelLock = false;
+
+        this.buildDots();
+        this.observe();
+        this.keys();
+        this.touch();
+        this.wheel();
+    }
+
+    pad(n){ return String(n+1).padStart(2,'0'); }
+
+    buildDots() {
+        // clear first — guards against duplicate dots if file is re-saved while rendered
+        this.navDots.innerHTML = '';
+        this.slides.forEach((_, i) => {
+            const b = document.createElement('button');
+            b.setAttribute('aria-label', 'Go to slide ' + (i+1));
+            b.addEventListener('click', () => this.goTo(i));
+            this.navDots.appendChild(b);
+        });
+        this.dots = Array.from(this.navDots.children);
+    }
+
+    observe() {
+        // add .visible to trigger CSS reveal animations + track current slide
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                    this.current = this.slides.indexOf(e.target);
+                    this.sync();
+                }
+            });
+        }, { threshold: 0.55 });
+        this.slides.forEach(s => io.observe(s));
+    }
+
+    sync() {
+        this.dots.forEach((d,i) => d.classList.toggle('active', i === this.current));
+        this.progressBar.style.width = ((this.current) / (this.slides.length - 1) * 100) + '%';
+        this.curEl.textContent = this.pad(this.current);
+    }
+
+    goTo(i) {
+        i = Math.max(0, Math.min(this.slides.length - 1, i));
+        this.slides[i].scrollIntoView({ behavior: 'smooth' });
+    }
+    next(){ this.goTo(this.current + 1); }
+    prev(){ this.goTo(this.current - 1); }
+
+    keys() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.getAttribute('contenteditable')) return; // don't hijack while editing
+            if (['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); this.next(); }
+            else if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); this.prev(); }
+            else if (e.key === 'Home') { e.preventDefault(); this.goTo(0); }
+            else if (e.key === 'End') { e.preventDefault(); this.goTo(this.slides.length - 1); }
+        });
+    }
+
+    touch() {
+        let y0 = null;
+        document.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, {passive:true});
+        document.addEventListener('touchend', e => {
+            if (y0 === null) return;
+            const dy = y0 - e.changedTouches[0].clientY;
+            if (Math.abs(dy) > 50) dy > 0 ? this.next() : this.prev();
+            y0 = null;
+        }, {passive:true});
+    }
+
+    wheel() {
+        // snap one slide per gesture; ignore while editing
+        window.addEventListener('wheel', (e) => {
+            if (document.body.classList.contains('edit-active')) return;
+            if (this.wheelLock) return;
+            if (Math.abs(e.deltaY) < 18) return;
+            this.wheelLock = true;
+            e.deltaY > 0 ? this.next() : this.prev();
+            setTimeout(() => this.wheelLock = false, 650);
+        }, { passive: true });
+    }
+}
+const deck = new SlidePresentation();
+
+/* ===========================================================
+   INLINE EDITOR  (opt-in feature — enabled for this deck)
+   - toggle via ✏️ button, hotzone hover, or "E"
+   - click any text to edit · auto-saves to localStorage
+   - Export downloads a clean copy with edit state stripped
+   =========================================================== */
+class Editor {
+    constructor() {
+        this.isActive = false;
+        this.KEY = 'pycon-agentic-search-deck-v1';
+        this.deck = document.getElementById('deck');
+        this.sel = 'h1,h2,h3,p,li,td,th,blockquote,figcaption,.q-text,.q-label,.eyebrow,.lib,.desc,.lbl,.big,.tag,.sec-title';
+        this.toggle = document.getElementById('editToggle');
+        this.banner = document.getElementById('editBanner');
+        this.restore();
+        this.wire();
+    }
+
+    wire() {
+        // 1. button click
+        this.toggle.addEventListener('click', () => this.toggleMode());
+        // 2. hotzone hover w/ 400ms grace
+        const hz = document.querySelector('.edit-hotzone');
+        let t = null;
+        hz.addEventListener('mouseenter', () => { clearTimeout(t); this.toggle.classList.add('show'); });
+        hz.addEventListener('mouseleave', () => { t = setTimeout(() => { if (!this.isActive) this.toggle.classList.remove('show'); }, 400); });
+        this.toggle.addEventListener('mouseenter', () => clearTimeout(t));
+        this.toggle.addEventListener('mouseleave', () => { t = setTimeout(() => { if (!this.isActive) this.toggle.classList.remove('show'); }, 400); });
+        // 3. hotzone click
+        hz.addEventListener('click', () => this.toggleMode());
+        // 4. keyboard E
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) this.toggleMode();
+            if ((e.ctrlKey || e.metaKey) && e.key === 's' && this.isActive) { e.preventDefault(); this.save(true); }
+        });
+        // buttons
+        document.getElementById('saveBtn').addEventListener('click', () => this.save(true));
+        document.getElementById('exportBtn').addEventListener('click', () => this.exportFile());
+        document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+        // autosave on edits
+        this.deck.addEventListener('input', () => { clearTimeout(this._a); this._a = setTimeout(() => this.save(false), 800); });
+    }
+
+    els(){ return Array.from(this.deck.querySelectorAll(this.sel)); }
+
+    toggleMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('edit-active', this.isActive);
+        this.toggle.classList.toggle('active', this.isActive);
+        this.toggle.classList.toggle('show', this.isActive);
+        this.banner.classList.toggle('active', this.isActive);
+        this.els().forEach(el => this.isActive ? el.setAttribute('contenteditable','true') : el.removeAttribute('contenteditable'));
+    }
+
+    save(flash) {
+        try {
+            localStorage.setItem(this.KEY, this.deck.innerHTML);
+            if (flash) {
+                const b = document.getElementById('saveBtn');
+                const o = b.textContent; b.textContent = 'Saved ✓';
+                setTimeout(() => b.textContent = o, 1100);
+            }
+        } catch (err) { console.warn('save failed', err); }
+    }
+
+    restore() {
+        try {
+            const html = localStorage.getItem(this.KEY);
+            if (html) this.deck.innerHTML = html;
+        } catch (err) { console.warn('restore failed', err); }
+    }
+
+    reset() {
+        if (!confirm('Discard local edits and reload the original?')) return;
+        localStorage.removeItem(this.KEY);
+        location.reload();
+    }
+
+    exportFile() {
+        // strip edit state so the saved file opens clean
+        const editables = Array.from(document.querySelectorAll('[contenteditable]'));
+        editables.forEach(el => el.removeAttribute('contenteditable'));
+        document.body.classList.remove('edit-active');
+        this.toggle.classList.remove('active','show');
+        this.banner.classList.remove('active','show');
+
+        const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+        // restore live edit state
+        document.body.classList.add('edit-active');
+        editables.forEach(el => el.setAttribute('contenteditable','true'));
+        this.toggle.classList.add('active');
+        this.banner.classList.add('active');
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'presentation.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+}
+new Editor();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+uv.lock
+dist/
+build/
+*.egg-info/
+
+documents/*
+my-knowledge-base/*
+.lance
+*.db
+
+grep_docs_solution.py
+index/*
